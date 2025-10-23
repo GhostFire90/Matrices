@@ -3,19 +3,29 @@ use std::{
   ops::{Add, Mul, Neg, Sub},
 };
 
+/// Error type for various Matrix operations
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum MatrixError
 {
+  /// Incompatible dimensions for mul
   MissmatchDimension
   {
     lhs: (usize, usize),
     rhs: (usize, usize),
   },
+  /// 2d vec given does not have uniform lengths
   NonUniformColumnLength,
-  OutOfBounds(usize),
+  /// index out of bounds for row or col
+  OutOfBoundsRC(usize),
+  /// index out of bounds for get
+  OutOfBounds(usize, usize),
+  /// The matrix is required to be a square and isnt
   NonSquareMatrix,
 }
 
+/// # MatrixReal
+/// a matrix type using only real numbers represented by f64<br>
+/// it is represented in a row-col 2d matrix for ease of use
 #[derive(Clone, PartialEq, Debug)]
 pub struct MatrixReal
 {
@@ -53,6 +63,7 @@ impl MatrixReal
     })
   }
 
+  /// Creates a square identity matrix of dim x dim dimension
   pub fn identity(dim: usize) -> Self
   {
     let mut data = Vec::new();
@@ -82,19 +93,24 @@ impl MatrixReal
     }
   }
 
+  /// gives rows count
   pub const fn rows(&self) -> usize
   {
     self.row_count
   }
+
+  /// gives cols count
   pub const fn cols(&self) -> usize
   {
     self.col_count
   }
+
+  /// Get a row
   pub fn row(&self, idx: usize) -> Result<Vec<&f64>>
   {
     if idx >= self.row_count
     {
-      return Err(MatrixError::OutOfBounds(idx));
+      return Err(MatrixError::OutOfBoundsRC(idx));
     }
     Ok(self.data[idx].iter().collect())
   }
@@ -102,16 +118,17 @@ impl MatrixReal
   {
     if idx >= self.row_count
     {
-      return Err(MatrixError::OutOfBounds(idx));
+      return Err(MatrixError::OutOfBoundsRC(idx));
     }
     Ok(self.data[idx].iter_mut().collect())
   }
 
+  /// Get a col
   pub fn col(&self, idx: usize) -> Result<Vec<&f64>>
   {
     if idx >= self.col_count
     {
-      return Err(MatrixError::OutOfBounds(idx));
+      return Err(MatrixError::OutOfBoundsRC(idx));
     }
     Ok(self.data.iter().map(|x| &x[idx]).collect())
   }
@@ -119,25 +136,29 @@ impl MatrixReal
   {
     if idx >= self.col_count
     {
-      return Err(MatrixError::OutOfBounds(idx));
+      return Err(MatrixError::OutOfBoundsRC(idx));
     }
     Ok(self.data.iter_mut().map(|x| &mut x[idx]).collect())
   }
+
+  /// Returns a matrix with the given row removed
   pub fn remove_row(mut self, row: usize) -> Result<Self>
   {
     if row >= self.rows()
     {
-      return Err(MatrixError::OutOfBounds(row));
+      return Err(MatrixError::OutOfBoundsRC(row));
     }
     self.data.remove(row);
     self.row_count -= 1;
     Ok(self)
   }
+
+  /// Returns a matrix with the given col removed
   pub fn remove_col(mut self, col: usize) -> Result<Self>
   {
     if col >= self.cols()
     {
-      return Err(MatrixError::OutOfBounds(col));
+      return Err(MatrixError::OutOfBoundsRC(col));
     }
     self.data.iter_mut().for_each(|x| {
       x.remove(col);
@@ -146,6 +167,7 @@ impl MatrixReal
     Ok(self)
   }
 
+  /// [Determinant](https://en.wikipedia.org/wiki/Determinant)
   pub fn det(&self) -> Result<f64>
   {
     // non-square matrices dont have a determinant
@@ -181,8 +203,11 @@ impl MatrixReal
 
     Ok(ret)
   }
+
+  /// [Cofactor matrix](https://en.wikipedia.org/wiki/Minor_(linear_algebra))
   pub fn cofactor_matrix(&self) -> Result<Self>
   {
+    // should get tossed out by det but dont wanna do all the extra stuff if we know its uneccesary
     if self.row_count != self.col_count
     {
       return Err(MatrixError::NonSquareMatrix);
@@ -194,6 +219,8 @@ impl MatrixReal
     {
       for j in 0..self.col_count
       {
+        // C_{i,j} == (-1)^{i+j} * det(SM_{i,j})
+        // get the determinant of the submatrix missing row i and col j, mul by the right sign
         let sign = if (i + j) % 2 == 0 { 1.0 } else { -1.0 };
         data[i].push(sign * self.clone().remove_row(i)?.remove_col(j)?.det()?);
       }
@@ -202,6 +229,7 @@ impl MatrixReal
     Self::new(data)
   }
 
+  /// [Transpose](https://en.wikipedia.org/wiki/Transpose)
   pub fn transpose(&self) -> Self
   {
     let mut i = 0;
@@ -215,9 +243,37 @@ impl MatrixReal
     Self::new(data).unwrap()
   }
 
+  /// [Inverse](https://en.wikipedia.org/wiki/Invertible_matrix)
   pub fn inverse(&self) -> Result<Self>
   {
+    // A^{-1} = 1/det(A) * CofactorMatrix(A)^{T}
+    // CofactorMatrix(A)^T is called the adj matrix
     Ok(1.0 / self.det()? * self.cofactor_matrix()?.transpose())
+  }
+
+  /// Getters
+  pub fn get(&self, row: usize, col: usize) -> Result<&f64>
+  {
+    if row >= self.row_count || col >= self.col_count
+    {
+      Err(MatrixError::OutOfBounds(row, col))
+    }
+    else
+    {
+      Ok(&self.data[row][col])
+    }
+  }
+
+  pub fn get_mut(&mut self, row: usize, col: usize) -> Result<&mut f64>
+  {
+    if row >= self.row_count || col >= self.col_count
+    {
+      Err(MatrixError::OutOfBounds(row, col))
+    }
+    else
+    {
+      Ok(&mut self.data[row][col])
+    }
   }
 }
 
@@ -266,6 +322,17 @@ impl Mul<MatrixReal> for f64
   {
     let mut ret = rhs;
     ret.data.iter_mut().flatten().for_each(|x| *x *= self);
+    ret
+  }
+}
+impl Mul<f64> for MatrixReal
+{
+  type Output = Self;
+
+  fn mul(self, rhs: f64) -> Self::Output
+  {
+    let mut ret = self;
+    ret.data.iter_mut().flatten().for_each(|x| *x *= rhs);
     ret
   }
 }
