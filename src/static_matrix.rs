@@ -4,7 +4,7 @@ use std::{
   ops::{Add, Mul},
 };
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Matrix<const R: usize, const C: usize, T>
 where
   T: Clone + PartialEq,
@@ -14,7 +14,7 @@ where
 }
 
 #[repr(transparent)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Mat4(Matrix<4, 4, f32>);
 
 impl<const R: usize, const C: usize, T> Matrix<R, C, T>
