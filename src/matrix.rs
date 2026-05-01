@@ -1,3 +1,4 @@
+use crate::{Quaternion, Vec3, Vector};
 use std::{
   fmt::Display,
   ops::{Add, Mul, Neg, Sub},
@@ -251,6 +252,23 @@ impl MatrixReal
     Ok(1.0 / self.det()? * self.cofactor_matrix()?.transpose())
   }
 
+  pub fn trace(&self) -> Result<f64>
+  {
+    if self.rows() != self.cols()
+    {
+      return Err(MatrixError::NonSquareMatrix);
+    }
+    Ok(
+      self
+        .data
+        .iter()
+        .flatten()
+        .step_by(self.cols() + 1)
+        .cloned()
+        .sum(),
+    )
+  }
+
   /// Getters
   pub fn get(&self, row: usize, col: usize) -> Result<&f64>
   {
@@ -274,6 +292,70 @@ impl MatrixReal
     {
       Ok(&mut self.data[row][col])
     }
+  }
+
+  pub fn data(&self) -> Vec<Vec<f64>>
+  {
+    self.data.clone()
+  }
+
+  // increases dimension by 1
+  pub fn expand(&self) -> Self
+  {
+    let mut ret = self.clone();
+    let mut row = Vec::new();
+    row.resize(self.col_count + 1, 0.0f64);
+    row[self.col_count] = 1.0;
+    for x in &mut ret.data
+    {
+      x.push(0.0);
+    }
+    ret.data.push(row);
+    ret.row_count += 1;
+    ret.col_count += 1;
+    ret
+  }
+
+  pub fn translation(trans: Vec3) -> MatrixReal
+  {
+    let mut ret = MatrixReal::identity(4);
+    let mut col = ret.col_mut(3).unwrap();
+    *col[0] = trans.x() as f64;
+    *col[1] = trans.y() as f64;
+    *col[2] = trans.z() as f64;
+    ret
+  }
+
+  pub fn rotation(axis: Vec3, theta: f32) -> MatrixReal
+  {
+    let axis = axis.matrix();
+    Quaternion::rotation(theta as f64, axis)
+      .unwrap()
+      .rotation_matrix()
+      .expand()
+  }
+  pub fn scale(scale: Vec3) -> MatrixReal
+  {
+    let mut ret = MatrixReal::identity(4);
+    ret.data[0][0] = scale.x() as f64;
+    ret.data[1][1] = scale.y() as f64;
+    ret.data[2][2] = scale.z() as f64;
+    ret
+  }
+  pub fn perspective(fov: f64, near: f64, far: f64, aspect: f64) -> MatrixReal
+  {
+    MatrixReal::new(vec![
+      vec![1.0 / (aspect * f64::tan(fov / 2.0)), 0.0, 0.0, 0.0],
+      vec![0.0, 1.0 / (aspect * f64::tan(fov / 2.0)), 0.0, 0.0],
+      vec![
+        0.0,
+        0.0,
+        -(far + near) / (far - near),
+        -(2.0 * far * near) / (far - near),
+      ],
+      vec![0.0, 0.0, -1.0, 0.0],
+    ])
+    .unwrap()
   }
 }
 
@@ -334,6 +416,16 @@ impl Mul<f64> for MatrixReal
     let mut ret = self;
     ret.data.iter_mut().flatten().for_each(|x| *x *= rhs);
     ret
+  }
+}
+
+impl<const S: usize> Mul<Vector<S>> for MatrixReal
+{
+  type Output = Result<Self>;
+
+  fn mul(self, rhs: Vector<S>) -> Self::Output
+  {
+    self * MatrixReal::from(rhs.into())
   }
 }
 
@@ -413,7 +505,7 @@ impl Display for MatrixReal
 #[cfg(test)]
 mod tests
 {
-  use crate::matrix::MatrixReal;
+  use crate::{Vec3, matrix::MatrixReal};
 
   #[test]
   fn identity()
@@ -513,5 +605,20 @@ mod tests
       ])
       .unwrap()
     );
+  }
+  #[test]
+  fn rotate()
+  {
+    let my_rot = MatrixReal::rotation(Vec3::new(0.0, 0.0, 1.0), 75.0f32.to_radians());
+    assert_eq!(
+      my_rot,
+      MatrixReal::new(vec![
+        vec![0.258819045102521, 0.965925826289068, 0.0],
+        vec![-0.965925826289068, 0.258819045102521, 0.0],
+        vec![0.0, 0.0, 1.0]
+      ])
+      .unwrap()
+      .expand()
+    )
   }
 }
