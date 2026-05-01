@@ -15,7 +15,7 @@ where
 
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Clone)]
-pub struct Mat4(Matrix<4, 4, f32>);
+pub struct Mat4(pub Matrix<4, 4, f32>);
 
 impl<const R: usize, const C: usize, T> Matrix<R, C, T>
 where
