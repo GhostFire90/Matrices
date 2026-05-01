@@ -13,9 +13,7 @@ where
   data: [T; R * C],
 }
 
-#[repr(transparent)]
-#[derive(Debug, PartialEq, Clone)]
-pub struct Mat4(pub Matrix<4, 4, f32>);
+pub type Mat4 = Matrix<4, 4, f32>;
 
 impl<const R: usize, const C: usize, T> Matrix<R, C, T>
 where
@@ -91,18 +89,14 @@ where
 
 impl Mat4
 {
-  pub fn new(data: &[[f32; 4]; 4]) -> Self
-  {
-    Self(Matrix::new(data))
-  }
   pub fn translation(pos: Vec3) -> Self
   {
-    Mat4(Matrix::new(&[
+    Matrix::new(&[
       [1.0, 0.0, 0.0, pos.x()],
       [0.0, 1.0, 0.0, pos.y()],
       [0.0, 0.0, 1.0, pos.z()],
       [0.0, 0.0, 0.0, 1.0],
-    ]))
+    ])
   }
 
   pub fn rotation(axis: Vec3, theta: f32) -> Self
@@ -116,23 +110,23 @@ impl Mat4
       .into_iter()
       .map(|x| x as f32)
       .collect();
-    Self(Matrix::<4, 4, f32> {
+    Matrix::<4, 4, f32> {
       data: dvec.try_into().map_err(|_| "SHOULD BE IMPOSSIBLE").unwrap(),
-    })
+    }
   }
   pub fn scale(scale: Vec3) -> Self
   {
-    Self(Matrix::new(&[
+    Matrix::new(&[
       [scale.x(), 0.0, 0.0, 0.0],
       [0.0, scale.y(), 0.0, 0.0],
       [0.0, 0.0, scale.z(), 0.0],
       [0.0, 0.0, 0.0, 1.0],
-    ]))
+    ])
   }
 
   pub fn perspective(fov: f32, near: f32, far: f32, aspect: f32) -> Self
   {
-    Self(Matrix::new(&[
+    Matrix::new(&[
       [1.0 / (aspect * f32::tan(fov / 2.0)), 0.0, 0.0, 0.0],
       [0.0, 1.0 / (aspect * f32::tan(fov / 2.0)), 0.0, 0.0],
       [
@@ -142,27 +136,7 @@ impl Mat4
         -(2.0 * far * near) / (far - near),
       ],
       [0.0, 0.0, -1.0, 0.0],
-    ]))
-  }
-}
-
-impl<T> Mul<T> for Mat4
-where
-  Matrix<4, 4, f32>: Mul<T>,
-{
-  type Output = <Matrix<4, 4, f32> as Mul<T>>::Output;
-  fn mul(self, rhs: T) -> Self::Output
-  {
-    self.0 * rhs
-  }
-}
-impl Mul for Mat4
-{
-  type Output = Mat4;
-
-  fn mul(self, rhs: Self) -> Self::Output
-  {
-    Mat4(self.0 * rhs.0)
+    ])
   }
 }
 
