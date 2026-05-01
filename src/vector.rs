@@ -1,15 +1,15 @@
-use crate::MatrixReal;
+use crate::MatrixDynamic;
 
 #[derive(Clone)]
 pub struct Vector<const S: usize>
 {
-  pub(self) components: [f32; S],
+  pub(crate) components: [f32; S],
 }
-impl<const S: usize> Into<MatrixReal> for Vector<S>
+impl<const S: usize> Into<MatrixDynamic> for Vector<S>
 {
-  fn into(self) -> MatrixReal
+  fn into(self) -> MatrixDynamic
   {
-    MatrixReal::new(vec![
+    MatrixDynamic::new(vec![
       self
         .components
         .to_vec()
@@ -24,9 +24,9 @@ impl<const S: usize> Into<MatrixReal> for Vector<S>
 
 impl<const S: usize> Vector<S>
 {
-  pub fn matrix(&self) -> MatrixReal
+  pub fn matrix(&self) -> MatrixDynamic
   {
-    MatrixReal::from(self.clone().into())
+    MatrixDynamic::from(self.clone().into())
   }
   pub fn dot(&self, rhs: &Self) -> f32
   {

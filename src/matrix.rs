@@ -28,7 +28,7 @@ pub enum MatrixError
 /// a matrix type using only real numbers represented by f64<br>
 /// it is represented in a row-col 2d matrix for ease of use
 #[derive(Clone, PartialEq, Debug)]
-pub struct MatrixReal
+pub struct MatrixDynamic
 {
   row_count: usize,
   col_count: usize,
@@ -37,7 +37,7 @@ pub struct MatrixReal
 
 pub type Result<T> = std::result::Result<T, MatrixError>;
 
-impl MatrixReal
+impl MatrixDynamic
 {
   pub fn new(data: Vec<Vec<f64>>) -> Result<Self>
   {
@@ -316,9 +316,9 @@ impl MatrixReal
     ret
   }
 
-  pub fn translation(trans: Vec3) -> MatrixReal
+  pub fn translation(trans: Vec3) -> MatrixDynamic
   {
-    let mut ret = MatrixReal::identity(4);
+    let mut ret = MatrixDynamic::identity(4);
     let mut col = ret.col_mut(3).unwrap();
     *col[0] = trans.x() as f64;
     *col[1] = trans.y() as f64;
@@ -326,7 +326,7 @@ impl MatrixReal
     ret
   }
 
-  pub fn rotation(axis: Vec3, theta: f32) -> MatrixReal
+  pub fn rotation(axis: Vec3, theta: f32) -> MatrixDynamic
   {
     let axis = axis.matrix();
     Quaternion::rotation(theta as f64, axis)
@@ -334,17 +334,17 @@ impl MatrixReal
       .rotation_matrix()
       .expand()
   }
-  pub fn scale(scale: Vec3) -> MatrixReal
+  pub fn scale(scale: Vec3) -> MatrixDynamic
   {
-    let mut ret = MatrixReal::identity(4);
+    let mut ret = MatrixDynamic::identity(4);
     ret.data[0][0] = scale.x() as f64;
     ret.data[1][1] = scale.y() as f64;
     ret.data[2][2] = scale.z() as f64;
     ret
   }
-  pub fn perspective(fov: f64, near: f64, far: f64, aspect: f64) -> MatrixReal
+  pub fn perspective(fov: f64, near: f64, far: f64, aspect: f64) -> MatrixDynamic
   {
-    MatrixReal::new(vec![
+    MatrixDynamic::new(vec![
       vec![1.0 / (aspect * f64::tan(fov / 2.0)), 0.0, 0.0, 0.0],
       vec![0.0, 1.0 / (aspect * f64::tan(fov / 2.0)), 0.0, 0.0],
       vec![
@@ -363,7 +363,7 @@ impl MatrixReal
   }
 }
 
-impl Add for MatrixReal
+impl Add for MatrixDynamic
 {
   type Output = Result<Self>;
 
@@ -390,7 +390,7 @@ impl Add for MatrixReal
   }
 }
 
-impl Sub for MatrixReal
+impl Sub for MatrixDynamic
 {
   type Output = Result<Self>;
 
@@ -400,18 +400,18 @@ impl Sub for MatrixReal
   }
 }
 
-impl Mul<MatrixReal> for f64
+impl Mul<MatrixDynamic> for f64
 {
-  type Output = MatrixReal;
+  type Output = MatrixDynamic;
 
-  fn mul(self, rhs: MatrixReal) -> Self::Output
+  fn mul(self, rhs: MatrixDynamic) -> Self::Output
   {
     let mut ret = rhs;
     ret.data.iter_mut().flatten().for_each(|x| *x *= self);
     ret
   }
 }
-impl Mul<f64> for MatrixReal
+impl Mul<f64> for MatrixDynamic
 {
   type Output = Self;
 
@@ -423,17 +423,17 @@ impl Mul<f64> for MatrixReal
   }
 }
 
-impl<const S: usize> Mul<Vector<S>> for MatrixReal
+impl<const S: usize> Mul<Vector<S>> for MatrixDynamic
 {
   type Output = Result<Self>;
 
   fn mul(self, rhs: Vector<S>) -> Self::Output
   {
-    self * MatrixReal::from(rhs.into())
+    self * MatrixDynamic::from(rhs.into())
   }
 }
 
-impl Mul for MatrixReal
+impl Mul for MatrixDynamic
 {
   type Output = Result<Self>;
 
@@ -469,7 +469,7 @@ impl Mul for MatrixReal
   }
 }
 
-impl Neg for MatrixReal
+impl Neg for MatrixDynamic
 {
   type Output = Self;
 
@@ -479,7 +479,7 @@ impl Neg for MatrixReal
   }
 }
 
-impl Display for MatrixReal
+impl Display for MatrixDynamic
 {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
   {
@@ -509,18 +509,18 @@ impl Display for MatrixReal
 #[cfg(test)]
 mod tests
 {
-  use crate::{Vec3, matrix::MatrixReal};
+  use crate::{Vec3, matrix::MatrixDynamic};
 
   #[test]
   fn identity()
   {
     assert_eq!(
-      MatrixReal::identity(2),
-      MatrixReal::new(vec![vec![1.0, 0.0], vec![0.0, 1.0]]).unwrap()
+      MatrixDynamic::identity(2),
+      MatrixDynamic::new(vec![vec![1.0, 0.0], vec![0.0, 1.0]]).unwrap()
     );
     assert_eq!(
-      MatrixReal::identity(3),
-      MatrixReal::new(vec![
+      MatrixDynamic::identity(3),
+      MatrixDynamic::new(vec![
         vec![1.0, 0.0, 0.0],
         vec![0.0, 1.0, 0.0],
         vec![0.0, 0.0, 1.0]
@@ -532,7 +532,7 @@ mod tests
   fn det()
   {
     assert_eq!(
-      MatrixReal::new(vec![
+      MatrixDynamic::new(vec![
         vec![1.0, 4.0, 2.0, 3.0],
         vec![2.0, 3.0, 7.0, 0.0],
         vec![3.0, 7.0, 4.0, 4.0],
@@ -549,7 +549,7 @@ mod tests
   fn cofactor_matrix()
   {
     assert_eq!(
-      MatrixReal::new(vec![
+      MatrixDynamic::new(vec![
         vec![1.0, 4.0, 2.0, 3.0],
         vec![2.0, 3.0, 7.0, 0.0],
         vec![3.0, 7.0, 4.0, 4.0],
@@ -558,7 +558,7 @@ mod tests
       .unwrap()
       .cofactor_matrix()
       .unwrap(),
-      MatrixReal::new(vec![
+      MatrixDynamic::new(vec![
         vec![-32.0, -212.0, 100.0, 295.0],
         vec![-21.0, -11.0, 40.0, -5.0],
         vec![24.0, 159.0, -75.0, -170.0],
@@ -572,7 +572,7 @@ mod tests
   fn transpose()
   {
     assert_eq!(
-      MatrixReal::new(vec![
+      MatrixDynamic::new(vec![
         vec![1.0, 4.0, 2.0, 3.0],
         vec![2.0, 3.0, 7.0, 0.0],
         vec![3.0, 7.0, 4.0, 4.0],
@@ -580,7 +580,7 @@ mod tests
       ])
       .unwrap()
       .transpose(),
-      MatrixReal::new(vec![
+      MatrixDynamic::new(vec![
         vec![1.0, 2.0, 3.0, 9.0],
         vec![4.0, 3.0, 7.0, 1.0],
         vec![2.0, 7.0, 4.0, 5.0],
@@ -594,7 +594,7 @@ mod tests
   fn inverse()
   {
     assert_eq!(
-      MatrixReal::new(vec![
+      MatrixDynamic::new(vec![
         vec![1.0, 2.0, 3.0],
         vec![3.0, -2.0, 1.0],
         vec![4.0, 1.0, 1.0],
@@ -602,7 +602,7 @@ mod tests
       .unwrap()
       .inverse()
       .unwrap(),
-      MatrixReal::new(vec![
+      MatrixDynamic::new(vec![
         vec![-3.0 / 32.0, 1.0 / 32.0, 1.0 / 4.0],
         vec![1.0 / 32.0, -11.0 / 32.0, 1.0 / 4.0],
         vec![11.0 / 32.0, 7.0 / 32.0, -1.0 / 4.0]
@@ -613,10 +613,10 @@ mod tests
   #[test]
   fn rotate()
   {
-    let my_rot = MatrixReal::rotation(Vec3::new(0.0, 0.0, 1.0), 75.0f32.to_radians());
+    let my_rot = MatrixDynamic::rotation(Vec3::new(0.0, 0.0, 1.0), 75.0f32.to_radians());
     assert_eq!(
       my_rot,
-      MatrixReal::new(vec![
+      MatrixDynamic::new(vec![
         vec![0.258819045102521, 0.965925826289068, 0.0],
         vec![-0.965925826289068, 0.258819045102521, 0.0],
         vec![0.0, 0.0, 1.0]

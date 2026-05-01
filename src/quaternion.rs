@@ -1,12 +1,12 @@
-use crate::{MatrixError, MatrixReal};
+use crate::{MatrixDynamic, MatrixError};
 use std::ops::{Div, Mul};
 
 #[derive(Debug)]
 pub enum QuaternionErr
 {
   MatrixErr(MatrixError),
-  InvalidMatrix(MatrixReal),
-  InvalidVector(MatrixReal),
+  InvalidMatrix(MatrixDynamic),
+  InvalidVector(MatrixDynamic),
 }
 impl From<MatrixError> for QuaternionErr
 {
@@ -32,7 +32,7 @@ impl Quaternion
     }
   }
 
-  pub fn rotation(angle: f64, axis: MatrixReal) -> Result<Self, QuaternionErr>
+  pub fn rotation(angle: f64, axis: MatrixDynamic) -> Result<Self, QuaternionErr>
   {
     if axis.rows() > 3 || axis.cols() != 1
     {
@@ -56,7 +56,7 @@ impl Quaternion
     })
   }
 
-  pub fn rotate(&self, vector: MatrixReal) -> Result<MatrixReal, QuaternionErr>
+  pub fn rotate(&self, vector: MatrixDynamic) -> Result<MatrixDynamic, QuaternionErr>
   {
     if vector.rows() != 3 || vector.cols() != 1
     {
@@ -67,7 +67,7 @@ impl Quaternion
       components: [0.0, col[0], col[1], col[2]],
     };
     let res = self.clone() * qvec * self.conjugate();
-    Ok(MatrixReal::new(
+    Ok(MatrixDynamic::new(
       res.components[1..]
         .to_vec()
         .into_iter()
@@ -75,11 +75,11 @@ impl Quaternion
         .collect(),
     )?)
   }
-  pub fn rotation_matrix(&self) -> MatrixReal
+  pub fn rotation_matrix(&self) -> MatrixDynamic
   {
     let (a, b, c, d) = (self.a(), self.b(), self.c(), self.d());
 
-    MatrixReal::new(vec![
+    MatrixDynamic::new(vec![
       vec![
         1.0 - 2.0 * (c * c + d * d),
         2.0 * (b * c - a * d),
@@ -107,7 +107,7 @@ impl Quaternion
     }
   }
 
-  pub fn matrix(&self) -> MatrixReal
+  pub fn matrix(&self) -> MatrixDynamic
   {
     self.clone().into()
   }
@@ -201,12 +201,12 @@ impl Mul<f64> for Quaternion
   }
 }
 
-impl Into<MatrixReal> for Quaternion
+impl Into<MatrixDynamic> for Quaternion
 {
-  fn into(self) -> MatrixReal
+  fn into(self) -> MatrixDynamic
   {
     let (a, b, c, d) = (self.a(), self.b(), self.c(), self.d());
-    MatrixReal::new(vec![
+    MatrixDynamic::new(vec![
       vec![a, -b, -c, -d],
       vec![b, a, -d, c],
       vec![c, d, a, -b],
@@ -216,11 +216,11 @@ impl Into<MatrixReal> for Quaternion
   }
 }
 
-impl TryFrom<MatrixReal> for Quaternion
+impl TryFrom<MatrixDynamic> for Quaternion
 {
   type Error = QuaternionErr;
 
-  fn try_from(value: MatrixReal) -> Result<Self, Self::Error>
+  fn try_from(value: MatrixDynamic) -> Result<Self, Self::Error>
   {
     if value.cols() != value.rows() || value.rows() != 4
     {
@@ -236,7 +236,7 @@ impl TryFrom<MatrixReal> for Quaternion
 #[cfg(test)]
 mod tests
 {
-  use crate::{MatrixReal, Quaternion};
+  use crate::{MatrixDynamic, Quaternion};
 
   #[test]
   pub fn multest()
@@ -273,7 +273,7 @@ mod tests
     );
     let a = Quaternion::rotation(
       3.14 / 2.0,
-      MatrixReal::new(vec![vec![1.0, 1.0, 1.0]])
+      MatrixDynamic::new(vec![vec![1.0, 1.0, 1.0]])
         .unwrap()
         .transpose(),
     )
