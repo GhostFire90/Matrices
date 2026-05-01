@@ -357,6 +357,10 @@ impl MatrixReal
     ])
     .unwrap()
   }
+  pub fn flatten(&self) -> Vec<f64>
+  {
+    self.data.iter().cloned().flatten().collect()
+  }
 }
 
 impl Add for MatrixReal
