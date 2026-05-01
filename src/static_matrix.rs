@@ -4,6 +4,9 @@ use std::{
   ops::{Add, Mul},
 };
 
+/// # Matrix
+/// A RxC matrix of type T
+/// Row major
 #[derive(Clone, Debug, PartialEq)]
 pub struct Matrix<const R: usize, const C: usize, T>
 where
@@ -12,6 +15,7 @@ where
   data: [[T; C]; R],
 }
 
+/// Generic f32 mat4 type
 pub type Mat4 = Matrix<4, 4, f32>;
 
 impl<const R: usize, const C: usize, T> Matrix<R, C, T>
@@ -22,6 +26,7 @@ where
   {
     Self { data }
   }
+  /// [Transpose](https://en.wikipedia.org/wiki/Transpose)
   pub fn transpose(&self) -> Matrix<C, R, T>
   {
     let mut ret = Vec::new();
@@ -41,12 +46,14 @@ where
       data: ret.try_into().map_err(|_| "SHOULD BE IMPOSSIBLE").unwrap(),
     }
   }
+  /// Gets a column
   pub fn col(&self, col: usize) -> Vec<&T>
   {
     assert!(col < C);
 
     self.data.iter().map(|c| &c[col]).collect()
   }
+  /// Gets a row
   pub fn row(&self, row: usize) -> Vec<&T>
   {
     assert!(row < R);
@@ -56,6 +63,7 @@ where
 
 impl<const D: usize> Matrix<D, D, f32>
 {
+  /// Creates an identity matrix
   pub fn identity() -> Self
   {
     let mut dvec = Vec::new();
@@ -79,6 +87,7 @@ impl<const D: usize> Matrix<D, D, f32>
 
 impl Mat4
 {
+  /// Affine translation matrix
   pub fn translation(pos: Vec3) -> Self
   {
     Matrix::new([
@@ -89,6 +98,7 @@ impl Mat4
     ])
   }
 
+  /// Affine rotation matrix around axis by theta degrees
   pub fn rotation(axis: Vec3, theta: f32) -> Self
   {
     let axis = axis.matrix();
@@ -113,6 +123,7 @@ impl Mat4
         .unwrap(),
     }
   }
+  /// Affine scale matrix with component wise scale
   pub fn scale(scale: Vec3) -> Self
   {
     Matrix::new([
@@ -123,6 +134,7 @@ impl Mat4
     ])
   }
 
+  /// [perspective projection](https://en.wikipedia.org/wiki/3D_projection)
   pub fn perspective(fov: f32, near: f32, far: f32, aspect: f32) -> Self
   {
     Matrix::new([
