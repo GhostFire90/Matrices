@@ -137,6 +137,28 @@ impl Mat4 {
       [0.0, 0.0, -1.0, 0.0],
     ])
   }
+
+  pub fn euler_angles(angles: Vec3) -> Self {
+    let dvec: Vec<Vec<f32>> = Quaternion::euler_angles(angles)
+      .rotation_matrix()
+      .expand()
+      .data()
+      .into_iter()
+      .map(|v| v.into_iter().map(|x| x as f32).collect::<Vec<f32>>())
+      .collect();
+    Self {
+      data: dvec
+        .into_iter()
+        .map(|x| {
+          let ret: [f32; 4] = x.try_into().map_err(|_| "SHOULD BE IMPOSSIBLE").unwrap();
+          ret
+        })
+        .collect::<Vec<[f32; 4]>>()
+        .try_into()
+        .map_err(|_| "SHOULD BE IMPOSSIBLE")
+        .unwrap(),
+    }
+  }
 }
 
 impl<const R: usize> Into<Matrix<R, 1, f32>> for Vector<R> {
