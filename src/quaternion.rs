@@ -1,41 +1,33 @@
-use crate::{MatrixDynamic, MatrixError};
+use crate::{MatrixDynamic, MatrixError, Vec3};
 use std::ops::{Div, Mul};
 
 #[derive(Debug)]
-pub enum QuaternionErr
-{
+pub enum QuaternionErr {
   MatrixErr(MatrixError),
   InvalidMatrix(MatrixDynamic),
   InvalidVector(MatrixDynamic),
 }
-impl From<MatrixError> for QuaternionErr
-{
-  fn from(value: MatrixError) -> Self
-  {
+impl From<MatrixError> for QuaternionErr {
+  fn from(value: MatrixError) -> Self {
     Self::MatrixErr(value)
   }
 }
 
 // Q = a + bi + cj + dk
 #[derive(Clone, Debug, PartialEq)]
-pub struct Quaternion
-{
+pub struct Quaternion {
   components: [f64; 4],
 }
 
-impl Quaternion
-{
-  pub const fn new(a: f64, b: f64, c: f64, d: f64) -> Self
-  {
+impl Quaternion {
+  pub const fn new(a: f64, b: f64, c: f64, d: f64) -> Self {
     Self {
       components: [a, b, c, d],
     }
   }
 
-  pub fn rotation(angle: f64, axis: MatrixDynamic) -> Result<Self, QuaternionErr>
-  {
-    if axis.rows() > 3 || axis.cols() != 1
-    {
+  pub fn rotation(angle: f64, axis: MatrixDynamic) -> Result<Self, QuaternionErr> {
+    if axis.rows() > 3 || axis.cols() != 1 {
       return Err(QuaternionErr::InvalidVector(axis));
     }
 
@@ -56,10 +48,8 @@ impl Quaternion
     })
   }
 
-  pub fn rotate(&self, vector: MatrixDynamic) -> Result<MatrixDynamic, QuaternionErr>
-  {
-    if vector.rows() != 3 || vector.cols() != 1
-    {
+  pub fn rotate(&self, vector: MatrixDynamic) -> Result<MatrixDynamic, QuaternionErr> {
+    if vector.rows() != 3 || vector.cols() != 1 {
       return Err(QuaternionErr::InvalidVector(vector));
     }
     let col: Vec<f64> = vector.col(0)?.into_iter().cloned().collect();
@@ -75,8 +65,7 @@ impl Quaternion
         .collect(),
     )?)
   }
-  pub fn rotation_matrix(&self) -> MatrixDynamic
-  {
+  pub fn rotation_matrix(&self) -> MatrixDynamic {
     let (a, b, c, d) = (self.a(), self.b(), self.c(), self.d());
 
     MatrixDynamic::new(vec![
@@ -100,79 +89,70 @@ impl Quaternion
     .transpose()
   }
 
-  pub fn conjugate(&self) -> Self
-  {
+  pub fn euler_angles(angles: Vec3) -> Self {
+    Self::rotation(angles.x() as f64, Vec3::new(1.0, 0.0, 0.0).matrix()).unwrap()
+      * Self::rotation(angles.y() as f64, Vec3::new(0.0, 1.0, 0.0).matrix()).unwrap()
+      * Self::rotation(angles.z() as f64, Vec3::new(0.0, 0.0, 1.0).matrix()).unwrap()
+  }
+
+  pub fn conjugate(&self) -> Self {
     Self {
       components: [self.a(), -self.b(), -self.c(), -self.d()],
     }
   }
 
-  pub fn matrix(&self) -> MatrixDynamic
-  {
+  pub fn matrix(&self) -> MatrixDynamic {
     self.clone().into()
   }
 
-  pub fn magnitude(&self) -> f64
-  {
+  pub fn magnitude(&self) -> f64 {
     (self.clone() * self.conjugate()).a().sqrt()
   }
-  pub fn magnitude_square(&self) -> f64
-  {
+  pub fn magnitude_square(&self) -> f64 {
     (self.clone() * self.conjugate()).a()
   }
 
-  pub fn inverse(&self) -> Self
-  {
+  pub fn inverse(&self) -> Self {
     self.conjugate() / self.magnitude_square()
   }
 
-  pub fn a(&self) -> f64
-  {
+  pub fn a(&self) -> f64 {
     self.components[0]
   }
 
-  pub fn b(&self) -> f64
-  {
+  pub fn b(&self) -> f64 {
     self.components[1]
   }
 
-  pub fn c(&self) -> f64
-  {
+  pub fn c(&self) -> f64 {
     self.components[2]
   }
 
-  pub fn d(&self) -> f64
-  {
+  pub fn d(&self) -> f64 {
     self.components[3]
   }
 }
 
-impl Mul for Quaternion
-{
+impl Mul for Quaternion {
   type Output = Quaternion;
 
-  fn mul(self, rhs: Self) -> Self::Output
-  {
+  fn mul(self, rhs: Self) -> Self::Output {
     (self.matrix() * rhs.matrix()).unwrap().try_into().unwrap()
   }
 }
 
-impl Div for Quaternion
-{
+impl Div for Quaternion {
   type Output = Self;
 
-  fn div(self, rhs: Self) -> Self::Output
-  {
+  fn div(self, rhs: Self) -> Self::Output {
     self * rhs.inverse()
   }
 }
 
-impl Div<f64> for Quaternion
-{
+impl Div<f64> for Quaternion {
   type Output = Quaternion;
 
-  fn div(self, rhs: f64) -> Self::Output
-  {
+  fn div(self, rhs: f64) -> Self::Output {
     Self {
       components: [
         self.a() / rhs,
@@ -184,12 +164,10 @@ impl Div<f64> for Quaternion
   }
 }
 
-impl Mul<f64> for Quaternion
-{
+impl Mul<f64> for Quaternion {
   type Output = Quaternion;
 
-  fn mul(self, rhs: f64) -> Self::Output
-  {
+  fn mul(self, rhs: f64) -> Self::Output {
     Self {
       components: [
         self.a() * rhs,
@@ -201,10 +179,8 @@ impl Mul<f64> for Quaternion
   }
 }
 
-impl Into<MatrixDynamic> for Quaternion
-{
-  fn into(self) -> MatrixDynamic
-  {
+impl Into<MatrixDynamic> for Quaternion {
+  fn into(self) -> MatrixDynamic {
     let (a, b, c, d) = (self.a(), self.b(), self.c(), self.d());
     MatrixDynamic::new(vec![
       vec![a, -b, -c, -d],
@@ -216,14 +192,11 @@ impl Into<MatrixDynamic> for Quaternion
   }
 }
 
-impl TryFrom<MatrixDynamic> for Quaternion
-{
+impl TryFrom<MatrixDynamic> for Quaternion {
   type Error = QuaternionErr;
 
-  fn try_from(value: MatrixDynamic) -> Result<Self, Self::Error>
-  {
-    if value.cols() != value.rows() || value.rows() != 4
-    {
+  fn try_from(value: MatrixDynamic) -> Result<Self, Self::Error> {
+    if value.cols() != value.rows() || value.rows() != 4 {
       return Err(QuaternionErr::InvalidMatrix(value));
     }
     let col: Vec<f64> = value.col(0)?.iter().cloned().cloned().collect();
@@ -234,13 +207,11 @@ impl TryFrom<MatrixDynamic> for Quaternion
 }
 
 #[cfg(test)]
-mod tests
-{
+mod tests {
   use crate::{MatrixDynamic, Quaternion};
 
   #[test]
-  pub fn multest()
-  {
+  pub fn multest() {
     const EXPECTED: Quaternion = Quaternion::new(-60.0, 12.0, 30.0, 24.0);
     let a = Quaternion::new(1.0, 2.0, 3.0, 4.0);
     let b = Quaternion::new(5.0, 6.0, 7.0, 8.0);
@@ -248,23 +219,20 @@ mod tests
   }
 
   #[test]
-  pub fn conjtest()
-  {
+  pub fn conjtest() {
     const EXPECTED: Quaternion = Quaternion::new(1.0, -2.0, -3.0, -4.0);
     assert!(Quaternion::new(1.0, 2.0, 3.0, 4.0).conjugate() == EXPECTED);
   }
 
   #[test]
-  pub fn invtest()
-  {
+  pub fn invtest() {
     const EXPECTED: Quaternion = Quaternion::new(1.0 / 30.0, -1.0 / 15.0, -1.0 / 10.0, -2.0 / 15.0);
     let a = Quaternion::new(1.0, 2.0, 3.0, 4.0);
     assert!(a.inverse() == EXPECTED);
   }
 
   #[test]
-  pub fn rotatetest()
-  {
+  pub fn rotatetest() {
     let expected: Quaternion = Quaternion::new(
       0.7073882691672,
       0.235608393701789 * (3.0_f64.sqrt()),
