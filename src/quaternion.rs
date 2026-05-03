@@ -1,4 +1,4 @@
-use crate::{MatrixDynamic, MatrixError, Vec3};
+use crate::{Mat4, MatrixDynamic, MatrixError, Vec3};
 use std::ops::{Div, Mul};
 
 #[derive(Debug)]
@@ -16,83 +16,60 @@ impl From<MatrixError> for QuaternionErr {
 // Q = a + bi + cj + dk
 #[derive(Clone, Debug, PartialEq)]
 pub struct Quaternion {
-  components: [f64; 4],
+  components: [f32; 4],
 }
 
 impl Quaternion {
-  pub const fn new(a: f64, b: f64, c: f64, d: f64) -> Self {
+  pub const fn new(a: f32, b: f32, c: f32, d: f32) -> Self {
     Self {
       components: [a, b, c, d],
     }
   }
 
-  pub fn rotation(angle: f64, axis: MatrixDynamic) -> Result<Self, QuaternionErr> {
-    if axis.rows() > 3 || axis.cols() != 1 {
-      return Err(QuaternionErr::InvalidVector(axis));
-    }
-
+  pub fn rotation(angle: f32, axis: Vec3) -> Self {
     let a = (angle / 2.0).cos();
-    let components: Vec<f64> = (axis * ((angle / 2.0).sin()))
-      .col(0)
-      .unwrap()
+    let components: Vec<f32> = (axis * ((angle / 2.0).sin()))
+      .components
       .into_iter()
-      .cloned()
       .collect();
-    Ok(Self {
-      components: [
-        a,
-        components.get(0).cloned().unwrap_or_default(),
-        components.get(1).cloned().unwrap_or_default(),
-        components.get(2).cloned().unwrap_or_default(),
-      ],
-    })
-  }
-
-  pub fn rotate(&self, vector: MatrixDynamic) -> Result<MatrixDynamic, QuaternionErr> {
-    if vector.rows() != 3 || vector.cols() != 1 {
-      return Err(QuaternionErr::InvalidVector(vector));
+    Self {
+      components: [a, components[0], components[1], components[2]],
     }
-    let col: Vec<f64> = vector.col(0)?.into_iter().cloned().collect();
-    let qvec = Self {
-      components: [0.0, col[0], col[1], col[2]],
-    };
-    let res = self.clone() * qvec * self.conjugate();
-    Ok(MatrixDynamic::new(
-      res.components[1..]
-        .to_vec()
-        .into_iter()
-        .map(|x| vec![x])
-        .collect(),
-    )?)
   }
-  pub fn rotation_matrix(&self) -> MatrixDynamic {
-    let (a, b, c, d) = (self.a(), self.b(), self.c(), self.d());
 
-    MatrixDynamic::new(vec![
-      vec![
-        1.0 - 2.0 * (c * c + d * d),
-        2.0 * (b * c - a * d),
-        2.0 * (b * d + a * c),
+  pub fn rotate(&self, vector: Vec3) -> Vec3 {
+    (self.clone() * Quaternion::from(vector.into()) * self.conjugate()).into()
+  }
+
+  pub fn rotation_matrix(&self) -> Mat4 {
+    let (w, x, y, z) = (self.a(), self.b(), self.c(), self.d());
+    Mat4::new([
+      [
+        1.0 - 2.0 * (y * y + z * z),
+        2.0 * (x * y - w * z),
+        2.0 * (x * z + w * y),
+        0.0,
       ],
-      vec![
-        2.0 * (b * c + a * d),
-        1.0 - 2.0 * (b * b + d * d),
-        2.0 * (c * d - a * c),
+      [
+        2.0 * (x * y + w * z),
+        1.0 - 2.0 * (x * x + z * z),
+        2.0 * (y * z - w * x),
+        0.0,
       ],
-      vec![
-        2.0 * (b * d - a * c),
-        2.0 * (c * d + a * d),
-        1.0 - 2.0 * (b * b + c * c),
+      [
+        2.0 * (x * z - w * y),
+        2.0 * (y * z + w * x),
+        1.0 - 2.0 * (x * x + y * y),
+        0.0,
       ],
+      [0.0, 0.0, 0.0, 1.0],
     ])
-    .unwrap()
-    .transpose()
   }
 
   pub fn euler_angles(angles: Vec3) -> Self {
-    Self::rotation(angles.x() as f64, Vec3::new(1.0, 0.0, 0.0).matrix()).unwrap()
-      * Self::rotation(angles.y() as f64, Vec3::new(0.0, 1.0, 0.0).matrix()).unwrap()
-      * Self::rotation(angles.z() as f64, Vec3::new(0.0, 0.0, 1.0).matrix()).unwrap()
+    Self::rotation(angles.x() as f32, Vec3::new(1.0, 0.0, 0.0))
+      * Self::rotation(angles.y() as f32, Vec3::new(0.0, 1.0, 0.0))
+      * Self::rotation(angles.z() as f32, Vec3::new(0.0, 0.0, 1.0))
   }
 
   pub fn conjugate(&self) -> Self {
@@ -101,14 +78,14 @@ impl Quaternion {
     }
   }
 
-  pub fn matrix(&self) -> MatrixDynamic {
+  pub fn matrix(&self) -> Mat4 {
     self.clone().into()
   }
 
-  pub fn magnitude(&self) -> f64 {
+  pub fn magnitude(&self) -> f32 {
     (self.clone() * self.conjugate()).a().sqrt()
   }
-  pub fn magnitude_square(&self) -> f64 {
+  pub fn magnitude_square(&self) -> f32 {
     (self.clone() * self.conjugate()).a()
   }
 
@@ -116,19 +93,19 @@ impl Quaternion {
     self.conjugate() / self.magnitude_square()
   }
 
-  pub fn a(&self) -> f64 {
+  pub fn a(&self) -> f32 {
     self.components[0]
   }
 
-  pub fn b(&self) -> f64 {
+  pub fn b(&self) -> f32 {
     self.components[1]
   }
 
-  pub fn c(&self) -> f64 {
+  pub fn c(&self) -> f32 {
     self.components[2]
   }
 
-  pub fn d(&self) -> f64 {
+  pub fn d(&self) -> f32 {
     self.components[3]
   }
 }
@@ -137,7 +114,7 @@ impl Mul for Quaternion {
   type Output = Quaternion;
 
   fn mul(self, rhs: Self) -> Self::Output {
-    (self.matrix() * rhs.matrix()).unwrap().try_into().unwrap()
+    (self.matrix() * rhs.matrix()).into()
   }
 }
 
@@ -149,10 +126,10 @@ impl Div for Quaternion {
   }
 }
 
-impl Div<f64> for Quaternion {
+impl Div<f32> for Quaternion {
   type Output = Quaternion;
 
-  fn div(self, rhs: f64) -> Self::Output {
+  fn div(self, rhs: f32) -> Self::Output {
     Self {
       components: [
         self.a() / rhs,
@@ -164,10 +141,10 @@ impl Div<f64> for Quaternion {
   }
 }
 
-impl Mul<f64> for Quaternion {
+impl Mul<f32> for Quaternion {
   type Output = Quaternion;
 
-  fn mul(self, rhs: f64) -> Self::Output {
+  fn mul(self, rhs: f32) -> Self::Output {
     Self {
       components: [
         self.a() * rhs,
@@ -179,36 +156,47 @@ impl Mul<f64> for Quaternion {
   }
 }
 
-impl Into<MatrixDynamic> for Quaternion {
-  fn into(self) -> MatrixDynamic {
+impl Into<Mat4> for Quaternion {
+  fn into(self) -> Mat4 {
     let (a, b, c, d) = (self.a(), self.b(), self.c(), self.d());
-    MatrixDynamic::new(vec![
-      vec![a, -b, -c, -d],
-      vec![b, a, -d, c],
-      vec![c, d, a, -b],
-      vec![d, -c, b, a],
-    ])
-    .unwrap()
+    Mat4::new([[a, -b, -c, -d], [b, a, -d, c], [c, d, a, -b], [d, -c, b, a]])
   }
 }
 
-impl TryFrom<MatrixDynamic> for Quaternion {
-  type Error = QuaternionErr;
-
-  fn try_from(value: MatrixDynamic) -> Result<Self, Self::Error> {
-    if value.cols() != value.rows() || value.rows() != 4 {
-      return Err(QuaternionErr::InvalidMatrix(value));
+impl Into<Quaternion> for Mat4 {
+  fn into(self) -> Quaternion {
+    Quaternion {
+      components: self
+        .col(0)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<f32>>()
+        .try_into()
+        .unwrap(),
     }
-    let col: Vec<f64> = value.col(0)?.iter().cloned().cloned().collect();
-    Ok(Self {
-      components: [col[0], col[1], col[2], col[3]],
-    })
+  }
+}
+
+impl Into<Quaternion> for Vec3 {
+  fn into(self) -> Quaternion {
+    Quaternion {
+      components: [0.0, self.x(), self.y(), self.z()],
+    }
+  }
+}
+impl Into<Vec3> for Quaternion {
+  fn into(self) -> Vec3 {
+    Vec3 {
+      components: [self.b(), self.c(), self.d()],
+    }
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::{MatrixDynamic, Quaternion};
+  use core::f32;
+
+  use crate::{Quaternion, Vec3};
 
   #[test]
   pub fn multest() {
@@ -234,18 +222,12 @@ mod tests {
   #[test]
   pub fn rotatetest() {
     let expected: Quaternion = Quaternion::new(
-      0.7073882691672,
-      0.235608393701789 * (3.0_f64.sqrt()),
-      0.235608393701789 * (3.0_f64.sqrt()),
-      0.235608393701789 * (3.0_f64.sqrt()),
+      (f32::consts::FRAC_PI_4).cos(),
+      (f32::consts::FRAC_PI_4).sin(),
+      (f32::consts::FRAC_PI_4).sin(),
+      (f32::consts::FRAC_PI_4).sin(),
     );
-    let a = Quaternion::rotation(
-      3.14 / 2.0,
-      MatrixDynamic::new(vec![vec![1.0, 1.0, 1.0]])
-        .unwrap()
-        .transpose(),
-    )
-    .unwrap();
+    let a = Quaternion::rotation(f32::consts::FRAC_PI_2, Vec3::new(1.0, 1.0, 1.0));
     dbg!(&a);
     dbg!(&expected);
 

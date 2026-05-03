@@ -91,28 +91,9 @@ impl Mat4 {
 
   /// Affine rotation matrix around axis by theta degrees
   pub fn rotation(axis: Vec3, theta: f32) -> Self {
-    let axis = axis.matrix();
-    let dvec: Vec<Vec<f32>> = Quaternion::rotation(theta as f64, axis)
-      .unwrap()
-      .rotation_matrix()
-      .expand()
-      .data()
-      .into_iter()
-      .map(|v| v.into_iter().map(|x| x as f32).collect::<Vec<f32>>())
-      .collect();
-    Matrix::<4, 4, f32> {
-      data: dvec
-        .into_iter()
-        .map(|x| {
-          let ret: [f32; 4] = x.try_into().map_err(|_| "SHOULD BE IMPOSSIBLE").unwrap();
-          ret
-        })
-        .collect::<Vec<[f32; 4]>>()
-        .try_into()
-        .map_err(|_| "SHOULD BE IMPOSSIBLE")
-        .unwrap(),
-    }
+    Quaternion::rotation(theta, axis).rotation_matrix()
   }
+
   /// Affine scale matrix with component wise scale
   pub fn scale(scale: Vec3) -> Self {
     Matrix::new([
@@ -139,25 +120,7 @@ impl Mat4 {
   }
 
   pub fn euler_angles(angles: Vec3) -> Self {
-    let dvec: Vec<Vec<f32>> = Quaternion::euler_angles(angles)
-      .rotation_matrix()
-      .expand()
-      .data()
-      .into_iter()
-      .map(|v| v.into_iter().map(|x| x as f32).collect::<Vec<f32>>())
-      .collect();
-    Self {
-      data: dvec
-        .into_iter()
-        .map(|x| {
-          let ret: [f32; 4] = x.try_into().map_err(|_| "SHOULD BE IMPOSSIBLE").unwrap();
-          ret
-        })
-        .collect::<Vec<[f32; 4]>>()
-        .try_into()
-        .map_err(|_| "SHOULD BE IMPOSSIBLE")
-        .unwrap(),
-    }
+    Quaternion::euler_angles(angles).rotation_matrix()
   }
 }
 
