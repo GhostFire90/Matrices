@@ -35,6 +35,9 @@ impl<const S: usize> Vector<S> {
   pub fn magnitude(&self) -> f32 {
     self.dot(self)
   }
+  pub fn normalize(&self) -> Self {
+    self.clone() * (1.0 / self.magnitude())
+  }
 }
 impl<const S: usize> Mul<f32> for Vector<S> {
   type Output = Self;
