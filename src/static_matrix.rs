@@ -112,8 +112,8 @@ impl Mat4 {
       [
         0.0,
         0.0,
-        -(far + near) / (far - near),
-        -(2.0 * far * near) / (far - near),
+        -(far) / (far - near),
+        -(far * near) / (far - near),
       ],
       [0.0, 0.0, -1.0, 0.0],
     ])
