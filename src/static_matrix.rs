@@ -109,13 +109,8 @@ impl Mat4 {
     Matrix::new([
       [1.0 / (aspect * f32::tan(fov / 2.0)), 0.0, 0.0, 0.0],
       [0.0, 1.0 / (aspect * f32::tan(fov / 2.0)), 0.0, 0.0],
-      [
-        0.0,
-        0.0,
-        -(far + near) / (far - near),
-        -(2.0 * far * near) / (far - near),
-      ],
-      [0.0, 0.0, -1.0, 0.0],
+      [0.0, 0.0, -far / (far - near), -1.0],
+      [0.0, 0.0, -(far * near) / (far - near), 0.0],
     ])
   }
 
