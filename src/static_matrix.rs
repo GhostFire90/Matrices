@@ -1,4 +1,4 @@
-use crate::{Quaternion, Vec3, Vector};
+use crate::{MatrixDynamic, MatrixError, Quaternion, Vec3, Vector};
 use std::{
   iter::Sum,
   ops::{Add, Mul},
@@ -22,11 +22,13 @@ impl<const R: usize, const C: usize, T> Matrix<R, C, T>
 where
   T: Clone + PartialEq,
 {
-  pub fn new(data: [[T; C]; R]) -> Self {
+  pub fn new(data: [[T; C]; R]) -> Self
+  {
     Self { data }
   }
   /// [Transpose](https://en.wikipedia.org/wiki/Transpose)
-  pub fn transpose(&self) -> Matrix<C, R, T> {
+  pub fn transpose(&self) -> Matrix<C, R, T>
+  {
     let mut ret = Vec::new();
     let mut col = 0;
     ret.resize_with(C, || {
@@ -45,24 +47,29 @@ where
     }
   }
   /// Gets a column
-  pub fn col(&self, col: usize) -> Vec<&T> {
+  pub fn col(&self, col: usize) -> Vec<&T>
+  {
     assert!(col < C);
 
     self.data.iter().map(|c| &c[col]).collect()
   }
   /// Gets a row
-  pub fn row(&self, row: usize) -> Vec<&T> {
+  pub fn row(&self, row: usize) -> Vec<&T>
+  {
     assert!(row < R);
     self.data[row].iter().collect()
   }
 }
 
-impl<const D: usize> Matrix<D, D, f32> {
+impl<const D: usize> Matrix<D, D, f32>
+{
   /// Creates an identity matrix
-  pub fn identity() -> Self {
+  pub fn identity() -> Self
+  {
     let mut dvec = Vec::new();
 
-    for i in 0..D {
+    for i in 0..D
+    {
       let mut row = Vec::new();
       let mut j = 0;
       row.resize_with(D, || {
@@ -76,11 +83,26 @@ impl<const D: usize> Matrix<D, D, f32> {
       data: dvec.try_into().map_err(|_| "SHOULD BE IMPOSSIBLE").unwrap(),
     }
   }
+
+  pub fn det(&self) -> f32
+  {
+    MatrixDynamic::from(self.clone().into()).det().unwrap() as f32
+  }
+  pub fn inverse(&self) -> Self
+  {
+    MatrixDynamic::from(self.clone().into())
+      .inverse()
+      .unwrap()
+      .try_into()
+      .unwrap()
+  }
 }
 
-impl Mat4 {
+impl Mat4
+{
   /// Affine translation matrix
-  pub fn translation(pos: Vec3) -> Self {
+  pub fn translation(pos: Vec3) -> Self
+  {
     Matrix::new([
       [1.0, 0.0, 0.0, pos.x()],
       [0.0, 1.0, 0.0, pos.y()],
@@ -90,12 +112,14 @@ impl Mat4 {
   }
 
   /// Affine rotation matrix around axis by theta degrees
-  pub fn rotation(axis: Vec3, theta: f32) -> Self {
+  pub fn rotation(axis: Vec3, theta: f32) -> Self
+  {
     Quaternion::rotation(theta, axis).rotation_matrix()
   }
 
   /// Affine scale matrix with component wise scale
-  pub fn scale(scale: Vec3) -> Self {
+  pub fn scale(scale: Vec3) -> Self
+  {
     Matrix::new([
       [scale.x(), 0.0, 0.0, 0.0],
       [0.0, scale.y(), 0.0, 0.0],
@@ -105,7 +129,8 @@ impl Mat4 {
   }
 
   /// [perspective projection](https://en.wikipedia.org/wiki/3D_projection)
-  pub fn perspective(fov: f32, near: f32, far: f32, aspect: f32) -> Self {
+  pub fn perspective(fov: f32, near: f32, far: f32, aspect: f32) -> Self
+  {
     Matrix::new([
       [1.0 / (aspect * f32::tan(fov / 2.0)), 0.0, 0.0, 0.0],
       [0.0, 1.0 / (f32::tan(fov / 2.0)), 0.0, 0.0],
@@ -119,15 +144,19 @@ impl Mat4 {
     ])
   }
 
-  pub fn euler_angles(angles: Vec3) -> Self {
+  pub fn euler_angles(angles: Vec3) -> Self
+  {
     Quaternion::euler_angles(angles).rotation_matrix()
   }
 }
 
-impl<const R: usize> Into<Matrix<R, 1, f32>> for Vector<R> {
-  fn into(self) -> Matrix<R, 1, f32> {
+impl<const R: usize> Into<Matrix<R, 1, f32>> for Vector<R>
+{
+  fn into(self) -> Matrix<R, 1, f32>
+  {
     let mut dvec = Vec::new();
-    for i in 0..R {
+    for i in 0..R
+    {
       dvec.push([self.components[i]]);
     }
     Matrix {
@@ -135,8 +164,10 @@ impl<const R: usize> Into<Matrix<R, 1, f32>> for Vector<R> {
     }
   }
 }
-impl<const R: usize> Into<Vector<R>> for Matrix<R, 1, f32> {
-  fn into(self) -> Vector<R> {
+impl<const R: usize> Into<Vector<R>> for Matrix<R, 1, f32>
+{
+  fn into(self) -> Vector<R>
+  {
     Vector {
       components: self
         .data
@@ -151,9 +182,45 @@ impl<const R: usize> Into<Vector<R>> for Matrix<R, 1, f32> {
   }
 }
 
-impl<const R: usize, const C: usize> Mul<Vector<C>> for Matrix<R, C, f32> {
+impl<const R: usize, const C: usize> TryInto<Matrix<R, C, f32>> for MatrixDynamic
+{
+  type Error = MatrixError;
+
+  fn try_into(self) -> Result<Matrix<R, C, f32>, Self::Error>
+  {
+    if self.rows() != R || self.cols() != C
+    {
+      return Err(MatrixError::MissmatchDimension {
+        lhs: (self.rows(), self.cols()),
+        rhs: (R, C),
+      });
+    }
+
+    Ok(Matrix {
+      data: self
+        .data()
+        .into_iter()
+        .map(|x| {
+          x.into_iter()
+            .map(|x| x as f32)
+            .collect::<Vec<f32>>()
+            .try_into()
+            .map_err(|_| "")
+            .unwrap()
+        })
+        .collect::<Vec<[f32; C]>>()
+        .try_into()
+        .map_err(|_| "")
+        .unwrap(),
+    })
+  }
+}
+
+impl<const R: usize, const C: usize> Mul<Vector<C>> for Matrix<R, C, f32>
+{
   type Output = Matrix<R, 1, f32>;
-  fn mul(self, rhs: Vector<C>) -> Self::Output {
+  fn mul(self, rhs: Vector<C>) -> Self::Output
+  {
     self * Matrix::from(rhs.into())
   }
 }
@@ -165,9 +232,11 @@ where
 {
   type Output = Matrix<R1, C2, T>;
 
-  fn mul(self, rhs: Matrix<CR, C2, T>) -> Self::Output {
+  fn mul(self, rhs: Matrix<CR, C2, T>) -> Self::Output
+  {
     let mut data = Vec::new();
-    for row in 0..R1 {
+    for row in 0..R1
+    {
       let mut col = 0;
       let mut ret = Vec::new();
       ret.resize_with(C2, || {
@@ -187,18 +256,60 @@ where
   }
 }
 
-impl<const D: usize> Default for Matrix<D, D, f32> {
-  fn default() -> Self {
+impl<const D: usize> Default for Matrix<D, D, f32>
+{
+  fn default() -> Self
+  {
     Self::identity()
   }
 }
 
+impl<const R: usize, const C: usize> Mul<f32> for Matrix<R, C, f32>
+{
+  type Output = Self;
+
+  fn mul(mut self, rhs: f32) -> Self::Output
+  {
+    self
+      .data
+      .iter_mut()
+      .for_each(|v| v.iter_mut().for_each(|x| *x *= rhs));
+    self
+  }
+}
+impl<const R: usize, const C: usize> Mul<Matrix<R, C, f32>> for f32
+{
+  type Output = Matrix<R, C, f32>;
+
+  fn mul(self, rhs: Matrix<R, C, f32>) -> Self::Output
+  {
+    rhs * self
+  }
+}
+
+impl<const R: usize, const C: usize> Into<MatrixDynamic> for Matrix<R, C, f32>
+{
+  fn into(self) -> MatrixDynamic
+  {
+    MatrixDynamic::new(
+      self
+        .data
+        .into_iter()
+        .map(|x| x.into_iter().map(|x| x as f64).collect())
+        .collect(),
+    )
+    .unwrap()
+  }
+}
+
 #[cfg(test)]
-mod tests {
+mod tests
+{
   use crate::static_matrix::Mat4;
 
   #[test]
-  fn mul() {
+  fn mul()
+  {
     let a = Mat4::new([
       [21.0, 16.0, 61.0, 80.0],
       [69.0, 68.0, 76.0, 26.0],
