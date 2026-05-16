@@ -12,7 +12,7 @@ pub struct Matrix<const R: usize, const C: usize, T>
 where
   T: Clone + PartialEq,
 {
-  data: [[T; C]; R],
+  pub(crate) data: [[T; C]; R],
 }
 
 /// Generic f32 mat4 type
@@ -148,6 +148,22 @@ impl Mat4
   {
     Quaternion::euler_angles(angles).rotation_matrix()
   }
+
+  pub fn look_at(target: Vec3, eye: Vec3) -> Self
+  {
+    const Y: Vec3 = Vec3::new(0.0, 1.0, 0.0);
+    let fwd = (target - eye.clone()).normalize();
+    let side = fwd.cross(&Y).normalize();
+    let up = side.cross(&fwd).normalize();
+    Matrix {
+      data: [
+        [side.x(), side.y(), side.z(), -(side.dot(&eye))],
+        [up.x(), up.y(), up.z(), -(up.dot(&eye))],
+        [-fwd.x(), -fwd.y(), -fwd.z(), -(fwd.dot(&eye))],
+        [0.0, 0.0, 0.0, 1.0],
+      ],
+    }
+  }
 }
 
 impl<const R: usize> Into<Matrix<R, 1, f32>> for Vector<R>
@@ -161,23 +177,6 @@ impl<const R: usize> Into<Matrix<R, 1, f32>> for Vector<R>
     }
     Matrix {
       data: dvec.try_into().map_err(|_| "SHOULDNT BE POSSIBLE").unwrap(),
-    }
-  }
-}
-impl<const R: usize> Into<Vector<R>> for Matrix<R, 1, f32>
-{
-  fn into(self) -> Vector<R>
-  {
-    Vector {
-      components: self
-        .data
-        .iter()
-        .flatten()
-        .cloned()
-        .collect::<Vec<f32>>()
-        .try_into()
-        .map_err(|_| "SHOULDNT BE POSSIBLE")
-        .unwrap(),
     }
   }
 }

@@ -1,4 +1,4 @@
-use crate::{Quaternion, Vec3, Vector};
+use crate::{Vec3, Vector};
 use std::{
   fmt::Display,
   ops::{Add, Mul, Neg, Sub},
@@ -6,9 +6,11 @@ use std::{
 
 /// Error type for various Matrix operations
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum MatrixError {
+pub enum MatrixError
+{
   /// Incompatible dimensions for mul
-  MissmatchDimension {
+  MissmatchDimension
+  {
     lhs: (usize, usize),
     rhs: (usize, usize),
   },
@@ -26,7 +28,8 @@ pub enum MatrixError {
 /// a matrix type using only real numbers represented by f64<br>
 /// it is represented in a row-col 2d matrix for ease of use
 #[derive(Clone, PartialEq, Debug)]
-pub struct MatrixDynamic {
+pub struct MatrixDynamic
+{
   row_count: usize,
   col_count: usize,
   data: Vec<Vec<f64>>,
@@ -34,10 +37,13 @@ pub struct MatrixDynamic {
 
 pub type Result<T> = std::result::Result<T, MatrixError>;
 
-impl MatrixDynamic {
-  pub fn new(data: Vec<Vec<f64>>) -> Result<Self> {
+impl MatrixDynamic
+{
+  pub fn new(data: Vec<Vec<f64>>) -> Result<Self>
+  {
     // data[row][col]
-    if data.len() == 0 {
+    if data.len() == 0
+    {
       return Ok(Self {
         row_count: 0,
         col_count: 0,
@@ -46,7 +52,8 @@ impl MatrixDynamic {
     }
 
     let col_len = data[0].len();
-    if data.iter().any(|x| x.len() != col_len) {
+    if data.iter().any(|x| x.len() != col_len)
+    {
       return Err(MatrixError::NonUniformColumnLength);
     }
 
@@ -58,7 +65,8 @@ impl MatrixDynamic {
   }
 
   /// Creates a square identity matrix of dim x dim dimension
-  pub fn identity(dim: usize) -> Self {
+  pub fn identity(dim: usize) -> Self
+  {
     let mut data = Vec::new();
     let mut index = 0;
     data.resize_with(dim, || {
@@ -67,9 +75,12 @@ impl MatrixDynamic {
       res.resize_with(dim, || {
         let old = current;
         current += 1;
-        if old == index {
+        if old == index
+        {
           return 1.0;
-        } else {
+        }
+        else
+        {
           return 0.0;
         }
       });
@@ -84,46 +95,58 @@ impl MatrixDynamic {
   }
 
   /// gives rows count
-  pub const fn rows(&self) -> usize {
+  pub const fn rows(&self) -> usize
+  {
     self.row_count
   }
 
   /// gives cols count
-  pub const fn cols(&self) -> usize {
+  pub const fn cols(&self) -> usize
+  {
     self.col_count
   }
 
   /// Get a row
-  pub fn row(&self, idx: usize) -> Result<Vec<&f64>> {
-    if idx >= self.row_count {
+  pub fn row(&self, idx: usize) -> Result<Vec<&f64>>
+  {
+    if idx >= self.row_count
+    {
       return Err(MatrixError::OutOfBoundsRC(idx));
     }
     Ok(self.data[idx].iter().collect())
   }
-  pub fn row_mut(&mut self, idx: usize) -> Result<Vec<&mut f64>> {
-    if idx >= self.row_count {
+  pub fn row_mut(&mut self, idx: usize) -> Result<Vec<&mut f64>>
+  {
+    if idx >= self.row_count
+    {
       return Err(MatrixError::OutOfBoundsRC(idx));
     }
     Ok(self.data[idx].iter_mut().collect())
   }
 
   /// Get a col
-  pub fn col(&self, idx: usize) -> Result<Vec<&f64>> {
-    if idx >= self.col_count {
+  pub fn col(&self, idx: usize) -> Result<Vec<&f64>>
+  {
+    if idx >= self.col_count
+    {
       return Err(MatrixError::OutOfBoundsRC(idx));
     }
     Ok(self.data.iter().map(|x| &x[idx]).collect())
   }
-  pub fn col_mut(&mut self, idx: usize) -> Result<Vec<&mut f64>> {
-    if idx >= self.col_count {
+  pub fn col_mut(&mut self, idx: usize) -> Result<Vec<&mut f64>>
+  {
+    if idx >= self.col_count
+    {
       return Err(MatrixError::OutOfBoundsRC(idx));
     }
     Ok(self.data.iter_mut().map(|x| &mut x[idx]).collect())
   }
 
   /// Returns a matrix with the given row removed
-  pub fn remove_row(mut self, row: usize) -> Result<Self> {
-    if row >= self.rows() {
+  pub fn remove_row(mut self, row: usize) -> Result<Self>
+  {
+    if row >= self.rows()
+    {
       return Err(MatrixError::OutOfBoundsRC(row));
     }
     self.data.remove(row);
@@ -132,8 +155,10 @@ impl MatrixDynamic {
   }
 
   /// Returns a matrix with the given col removed
-  pub fn remove_col(mut self, col: usize) -> Result<Self> {
-    if col >= self.cols() {
+  pub fn remove_col(mut self, col: usize) -> Result<Self>
+  {
+    if col >= self.cols()
+    {
       return Err(MatrixError::OutOfBoundsRC(col));
     }
     self.data.iter_mut().for_each(|x| {
@@ -144,14 +169,17 @@ impl MatrixDynamic {
   }
 
   /// [Determinant](https://en.wikipedia.org/wiki/Determinant)
-  pub fn det(&self) -> Result<f64> {
+  pub fn det(&self) -> Result<f64>
+  {
     // non-square matrices dont have a determinant
-    if self.rows() != self.cols() {
+    if self.rows() != self.cols()
+    {
       return Err(MatrixError::NonSquareMatrix);
     }
 
     // base case
-    if self.rows() == 2 {
+    if self.rows() == 2
+    {
       return Ok(self.data[0][0] * self.data[1][1] - self.data[0][1] * self.data[1][0]);
     }
 
@@ -164,7 +192,8 @@ impl MatrixDynamic {
     // start positive
     let mut sign = 1.0;
     let mut ret = 0.0;
-    for i in 0..coeff.len() {
+    for i in 0..coeff.len()
+    {
       // the eq that is part of the sum
       // sign * coefficient of the removed column * determinant of the submatrix
       ret += sign * coeff[i] * working.clone().remove_col(i)?.det()?;
@@ -177,16 +206,20 @@ impl MatrixDynamic {
   }
 
   /// [Cofactor matrix](https://en.wikipedia.org/wiki/Minor_(linear_algebra))
-  pub fn cofactor_matrix(&self) -> Result<Self> {
+  pub fn cofactor_matrix(&self) -> Result<Self>
+  {
     // should get tossed out by det but dont wanna do all the extra stuff if we know its uneccesary
-    if self.row_count != self.col_count {
+    if self.row_count != self.col_count
+    {
       return Err(MatrixError::NonSquareMatrix);
     }
 
     let mut data = Vec::new();
     data.resize(self.row_count, Vec::new());
-    for i in 0..self.row_count {
-      for j in 0..self.col_count {
+    for i in 0..self.row_count
+    {
+      for j in 0..self.col_count
+      {
         // C_{i,j} == (-1)^{i+j} * det(SM_{i,j})
         // get the determinant of the submatrix missing row i and col j, mul by the right sign
         let sign = if (i + j) % 2 == 0 { 1.0 } else { -1.0 };
@@ -198,7 +231,8 @@ impl MatrixDynamic {
   }
 
   /// [Transpose](https://en.wikipedia.org/wiki/Transpose)
-  pub fn transpose(&self) -> Self {
+  pub fn transpose(&self) -> Self
+  {
     let mut i = 0;
     let mut data = Vec::new();
     data.resize_with(self.cols(), || {
@@ -211,14 +245,17 @@ impl MatrixDynamic {
   }
 
   /// [Inverse](https://en.wikipedia.org/wiki/Invertible_matrix)
-  pub fn inverse(&self) -> Result<Self> {
+  pub fn inverse(&self) -> Result<Self>
+  {
     // A^{-1} = 1/det(A) * CofactorMatrix(A)^{T}
     // CofactorMatrix(A)^T is called the adj matrix
     Ok(1.0 / self.det()? * self.cofactor_matrix()?.transpose())
   }
 
-  pub fn trace(&self) -> Result<f64> {
-    if self.rows() != self.cols() {
+  pub fn trace(&self) -> Result<f64>
+  {
+    if self.rows() != self.cols()
+    {
       return Err(MatrixError::NonSquareMatrix);
     }
     Ok(
@@ -233,33 +270,44 @@ impl MatrixDynamic {
   }
 
   /// Getters
-  pub fn get(&self, row: usize, col: usize) -> Result<&f64> {
-    if row >= self.row_count || col >= self.col_count {
+  pub fn get(&self, row: usize, col: usize) -> Result<&f64>
+  {
+    if row >= self.row_count || col >= self.col_count
+    {
       Err(MatrixError::OutOfBounds(row, col))
-    } else {
+    }
+    else
+    {
       Ok(&self.data[row][col])
     }
   }
 
-  pub fn get_mut(&mut self, row: usize, col: usize) -> Result<&mut f64> {
-    if row >= self.row_count || col >= self.col_count {
+  pub fn get_mut(&mut self, row: usize, col: usize) -> Result<&mut f64>
+  {
+    if row >= self.row_count || col >= self.col_count
+    {
       Err(MatrixError::OutOfBounds(row, col))
-    } else {
+    }
+    else
+    {
       Ok(&mut self.data[row][col])
     }
   }
 
-  pub fn data(&self) -> Vec<Vec<f64>> {
+  pub fn data(&self) -> Vec<Vec<f64>>
+  {
     self.data.clone()
   }
 
   // increases dimension by 1
-  pub fn expand(&self) -> Self {
+  pub fn expand(&self) -> Self
+  {
     let mut ret = self.clone();
     let mut row = Vec::new();
     row.resize(self.col_count + 1, 0.0f64);
     row[self.col_count] = 1.0;
-    for x in &mut ret.data {
+    for x in &mut ret.data
+    {
       x.push(0.0);
     }
     ret.data.push(row);
@@ -268,7 +316,8 @@ impl MatrixDynamic {
     ret
   }
 
-  pub fn translation(trans: Vec3) -> MatrixDynamic {
+  pub fn translation(trans: Vec3) -> MatrixDynamic
+  {
     let mut ret = MatrixDynamic::identity(4);
     let mut col = ret.col_mut(3).unwrap();
     *col[0] = trans.x() as f64;
@@ -283,14 +332,16 @@ impl MatrixDynamic {
   //     .rotation_matrix()
   //     .expand()
   // }
-  pub fn scale(scale: Vec3) -> MatrixDynamic {
+  pub fn scale(scale: Vec3) -> MatrixDynamic
+  {
     let mut ret = MatrixDynamic::identity(4);
     ret.data[0][0] = scale.x() as f64;
     ret.data[1][1] = scale.y() as f64;
     ret.data[2][2] = scale.z() as f64;
     ret
   }
-  pub fn perspective(fov: f64, near: f64, far: f64, aspect: f64) -> MatrixDynamic {
+  pub fn perspective(fov: f64, near: f64, far: f64, aspect: f64) -> MatrixDynamic
+  {
     MatrixDynamic::new(vec![
       vec![1.0 / (aspect * f64::tan(fov / 2.0)), 0.0, 0.0, 0.0],
       vec![0.0, 1.0 / (aspect * f64::tan(fov / 2.0)), 0.0, 0.0],
@@ -304,21 +355,27 @@ impl MatrixDynamic {
     ])
     .unwrap()
   }
-  pub fn flatten(&self) -> Vec<f64> {
+  pub fn flatten(&self) -> Vec<f64>
+  {
     self.data.iter().cloned().flatten().collect()
   }
 }
 
-impl Add for MatrixDynamic {
+impl Add for MatrixDynamic
+{
   type Output = Result<Self>;
 
-  fn add(self, rhs: Self) -> Self::Output {
-    if self.col_count != rhs.col_count || self.row_count != rhs.row_count {
+  fn add(self, rhs: Self) -> Self::Output
+  {
+    if self.col_count != rhs.col_count || self.row_count != rhs.row_count
+    {
       Err(MatrixError::MissmatchDimension {
         lhs: (self.row_count, self.col_count),
         rhs: (rhs.row_count, rhs.col_count),
       })
-    } else {
+    }
+    else
+    {
       let mut ret = self;
       ret
         .data
@@ -331,46 +388,57 @@ impl Add for MatrixDynamic {
   }
 }
 
-impl Sub for MatrixDynamic {
+impl Sub for MatrixDynamic
+{
   type Output = Result<Self>;
 
-  fn sub(self, rhs: Self) -> Self::Output {
+  fn sub(self, rhs: Self) -> Self::Output
+  {
     self + (-rhs)
   }
 }
 
-impl Mul<MatrixDynamic> for f64 {
+impl Mul<MatrixDynamic> for f64
+{
   type Output = MatrixDynamic;
 
-  fn mul(self, rhs: MatrixDynamic) -> Self::Output {
+  fn mul(self, rhs: MatrixDynamic) -> Self::Output
+  {
     let mut ret = rhs;
     ret.data.iter_mut().flatten().for_each(|x| *x *= self);
     ret
   }
 }
-impl Mul<f64> for MatrixDynamic {
+impl Mul<f64> for MatrixDynamic
+{
   type Output = Self;
 
-  fn mul(self, rhs: f64) -> Self::Output {
+  fn mul(self, rhs: f64) -> Self::Output
+  {
     let mut ret = self;
     ret.data.iter_mut().flatten().for_each(|x| *x *= rhs);
     ret
   }
 }
 
-impl<const S: usize> Mul<Vector<S>> for MatrixDynamic {
+impl<const S: usize> Mul<Vector<S>> for MatrixDynamic
+{
   type Output = Result<Self>;
 
-  fn mul(self, rhs: Vector<S>) -> Self::Output {
+  fn mul(self, rhs: Vector<S>) -> Self::Output
+  {
     self * MatrixDynamic::from(rhs.into())
   }
 }
 
-impl Mul for MatrixDynamic {
+impl Mul for MatrixDynamic
+{
   type Output = Result<Self>;
 
-  fn mul(self, rhs: Self) -> Self::Output {
-    if self.cols() != rhs.rows() {
+  fn mul(self, rhs: Self) -> Self::Output
+  {
+    if self.cols() != rhs.rows()
+    {
       return Err(MatrixError::MissmatchDimension {
         lhs: (self.rows(), self.cols()),
         rhs: (rhs.rows(), rhs.cols()),
@@ -381,8 +449,10 @@ impl Mul for MatrixDynamic {
     data.resize(self.rows(), Vec::new());
     data.iter_mut().for_each(|x| x.resize(rhs.cols(), 0.0));
 
-    for row in 0..self.rows() {
-      for col in 0..rhs.cols() {
+    for row in 0..self.rows()
+    {
+      for col in 0..rhs.cols()
+      {
         let value = self
           .row(row)?
           .iter()
@@ -397,27 +467,35 @@ impl Mul for MatrixDynamic {
   }
 }
 
-impl Neg for MatrixDynamic {
+impl Neg for MatrixDynamic
+{
   type Output = Self;
 
-  fn neg(self) -> Self::Output {
+  fn neg(self) -> Self::Output
+  {
     -1.0 * self
   }
 }
 
-impl Display for MatrixDynamic {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for MatrixDynamic
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+  {
     write!(f, "[")?;
-    for i in 0..self.data.len() {
+    for i in 0..self.data.len()
+    {
       let v = &self.data[i];
       write!(f, "[")?;
-      for j in 0..v.len() {
+      for j in 0..v.len()
+      {
         write!(f, "{}", v[j])?;
-        if j + 1 != v.len() {
+        if j + 1 != v.len()
+        {
           write!(f, ", ")?;
         }
       }
-      if i + 1 != self.data.len() {
+      if i + 1 != self.data.len()
+      {
         write!(f, ", ")?;
       }
       write!(f, "]")?;
@@ -427,11 +505,13 @@ impl Display for MatrixDynamic {
 }
 
 #[cfg(test)]
-mod tests {
-  use crate::{Vec3, matrix::MatrixDynamic};
+mod tests
+{
+  use crate::matrix::MatrixDynamic;
 
   #[test]
-  fn identity() {
+  fn identity()
+  {
     assert_eq!(
       MatrixDynamic::identity(2),
       MatrixDynamic::new(vec![vec![1.0, 0.0], vec![0.0, 1.0]]).unwrap()
@@ -447,7 +527,8 @@ mod tests {
     );
   }
   #[test]
-  fn det() {
+  fn det()
+  {
     assert_eq!(
       MatrixDynamic::new(vec![
         vec![1.0, 4.0, 2.0, 3.0],
@@ -463,7 +544,8 @@ mod tests {
   }
 
   #[test]
-  fn cofactor_matrix() {
+  fn cofactor_matrix()
+  {
     assert_eq!(
       MatrixDynamic::new(vec![
         vec![1.0, 4.0, 2.0, 3.0],
@@ -485,7 +567,8 @@ mod tests {
   }
 
   #[test]
-  fn transpose() {
+  fn transpose()
+  {
     assert_eq!(
       MatrixDynamic::new(vec![
         vec![1.0, 4.0, 2.0, 3.0],
@@ -506,7 +589,8 @@ mod tests {
   }
 
   #[test]
-  fn inverse() {
+  fn inverse()
+  {
     assert_eq!(
       MatrixDynamic::new(vec![
         vec![1.0, 2.0, 3.0],
