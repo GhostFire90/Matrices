@@ -1,7 +1,7 @@
 use crate::{Matrix, MatrixDynamic};
 use std::ops::{Div, Mul, Sub};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Vector<const S: usize>
 {
   pub(crate) components: [f32; S],
