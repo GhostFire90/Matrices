@@ -151,7 +151,7 @@ impl Mat4
 
   pub fn look_at(target: Vec3, eye: Vec3) -> Self
   {
-    const Y: Vec3 = Vec3::new(0.0, -1.0, 0.0);
+    const Y: Vec3 = Vec3::new(0.0, 1.0, 0.0);
     println!("Target: {target:?}, eye: {eye:?}");
 
     let fwd = (target - eye.clone()).normalize();
