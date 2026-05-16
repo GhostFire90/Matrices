@@ -34,7 +34,7 @@ impl<const S: usize> Vector<S>
   }
   pub fn dot(&self, rhs: &Self) -> f32
   {
-    (rhs.matrix() * self.matrix().transpose()).data[0][0]
+    (self.matrix().transpose() * rhs.matrix()).data[0][0]
   }
   pub fn magnitude_squared(&self) -> f32
   {
