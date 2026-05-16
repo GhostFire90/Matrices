@@ -159,7 +159,7 @@ impl Mat4
       data: [
         [side.x(), side.y(), side.z(), -(side.dot(&eye))],
         [up.x(), up.y(), up.z(), -(up.dot(&eye))],
-        [fwd.x(), fwd.y(), fwd.z(), -(fwd.dot(&eye))],
+        [-fwd.x(), -fwd.y(), -fwd.z(), -(fwd.dot(&eye))],
         [0.0, 0.0, 0.0, 1.0],
       ],
     }
